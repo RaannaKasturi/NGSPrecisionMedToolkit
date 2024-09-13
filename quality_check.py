@@ -3,7 +3,7 @@ from tools import run_command
 
 def install_java():
     try:
-        #data = run_command(['java', '-version'])
+        data = run_command(['java', '-version'])
         print("Java already installed.")
         return True
     except:

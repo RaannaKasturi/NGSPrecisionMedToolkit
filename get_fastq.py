@@ -1,5 +1,6 @@
 import os
-from tools import run_command
+from install_sra import install_sra
+from tools import run_command_out
         
 def cmd_for_info(accession: str):
     command = ['vdb-dump', accession, '--info']
@@ -18,7 +19,7 @@ def cmd_to_download(accession: str,
                  ar_start: int = None,
                  ar_end: int = None,
                  member: str = None):
-    command = ['fastq-dump', accession, '--outdir', f'./data/{accession}']
+    command = ['fastq-dump', accession, '--outdir', f'data/{accession}']
     if compressed:
         command.append('--gzip')
     else:
@@ -80,22 +81,30 @@ def list_files_in_directory(directory):
 def main(accession: str, alignment_filter_type: str,
          alignment_filter: bool, compressed: bool, skip_technical: bool, remove_adapter: bool, spot_group: bool,
          min_reads: int = None, max_reads: int = None, ar_specific: str = None, ar_start: int = None, ar_end: int = None, member: str = None):
-    dir =  "./applications/sratoolkit/bin/"
+    dir =  "applications/sratoolkit/bin/"
     try:
         try:
-            run_command(['vdb-dump', '--help'])
+            run_command_out(['vdb-dump', '--help'])
             dir = None
         except:
-            run_command(['vdb-dump', '--help'], dir=dir)
+            run_command_out(['vdb-dump', '--help'], dir=dir)
     except Exception as e:
-        print(f"An error occurred: {e}")
-    path = f'./data/{accession}'
+        try:
+            install_sra()
+        except Exception as e:
+            print(f"An error occurred: {e}")
+    path = f'data/{accession}'
     os.makedirs(name=path, mode=0o777, exist_ok=True)
     get_data = cmd_for_info(accession=accession)
     download = cmd_to_download(accession, alignment_filter, compressed, skip_technical, remove_adapter, spot_group, alignment_filter_type, min_reads, max_reads, ar_specific, ar_start, ar_end, member)
-    data = run_command(get_data, dir=dir)
-    download_status = run_command(download, dir=dir)
-    files = list_files_in_directory(path)
+    print("Fetching data")
+    data = run_command_out(get_data, dir=dir)
+    print("Downloading Fastq files")
+    download_status = run_command_out(download, dir=dir)
+    files = []
+    for file in list_files_in_directory(path):
+        file = os.path.join(path, file)
+        files.append(file)
     return data, download_status, files
 
 if __name__ == "__main__":
@@ -117,4 +126,5 @@ if __name__ == "__main__":
          ar_specific=ar_specific, ar_start=ar_start, ar_end=ar_end, member=member)
     print(f"{accession} DATA:\n"+data)
     print("DOWNLOAD STATUS:\n"+download_status)
-    print("SRA FILES:\n"+str(files))
+    for file in files:
+        print("SRA FILES:"+file)
