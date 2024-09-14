@@ -2,8 +2,7 @@ import os
 import subprocess
 import sys
 import time
-from set_paths import set_paths
-from tools import run_command, run_command_out
+from tools import run_command, run_command_out, set_paths
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -54,11 +53,7 @@ def setup_deps(sudo=True):
 def setup_sra(app_dir):
     sra_path = f"{app_dir}/sratoolkit/bin"
     try:
-        try:
-            run_command_out("vdb-dump --help")
-            sra_path = None
-        except:
-            run_command_out("vdb-dump --help", dir=sra_path)
+        run_command_out("vdb-dump --help", dir=sra_path)
     except:
         run_command_out(f"wget -O {app_dir}/sratoolkit.tar.gz https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/3.1.1/sratoolkit.3.1.1-ubuntu64.tar.gz")
         run_command_out(f"tar -xzf {app_dir}/sratoolkit.tar.gz -C {app_dir}")
@@ -69,17 +64,23 @@ def setup_sra(app_dir):
 def setup_fastqc(app_dir):
     fastqc_path = f"{app_dir}/fastqc"
     try:
-        try:
-            run_command_out("fastqc --help")
-            fastqc_path = None
-        except:
-            run_command_out("fastqc --help", dir=fastqc_path)
+        run_command_out("fastqc --help", dir=fastqc_path)
     except:
-        run_command_out(f"wget -O {app_dir}/fastqc.zip https://github.com/s-andrews/FastQC/archive/refs/tags/v0.12.1.zip")
+        run_command_out(f"wget -O {app_dir}/fastqc.zip https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.12.1.zip")
         run_command_out(f"unzip {app_dir}/fastqc.zip -d {app_dir}")
         run_command_out(f"mv {app_dir}/FastQC-0.12.1 {app_dir}/fastqc")
         run_command_out(f"rm {app_dir}/fastqc.zip")
     return fastqc_path
+
+def setup_fastp(app_dir):
+    fastp_path = f"{app_dir}/fastp"
+    os.makedirs(fastp_path, exist_ok=True)
+    try:
+        run_command_out("fastp --help", dir=fastp_path)
+    except:
+        run_command_out(f"wget -O {fastp_path}/fastp http://opengene.org/fastp/fastp")
+        run_command_out(f"chmod a+x {fastp_path}/fastp")
+    return fastp_path
 
 def main(sudo_password=None):
     while sudo_password is None:
@@ -101,16 +102,23 @@ def main(sudo_password=None):
         if setup_sudo(sudo_password):
             setup_deps(sudo=True)
             sra_path = setup_sra(app_dir)
+            set_paths("SRATOOLKIT_PATH", sra_path)
             fastqc_path = setup_fastqc(app_dir)
+            set_paths("FASTQC_PATH", fastqc_path)
+            fastp_path = setup_fastp(app_dir)
+            set_paths("FASTP_PATH", fastp_path)
+            print("Setup completed successfully.")
         else:
             setup_deps(sudo=False)
             sra_path = setup_sra(app_dir)
+            set_paths("SRATOOLKIT_PATH", sra_path)
             fastqc_path = setup_fastqc(app_dir)
+            set_paths("FASTQC_PATH", fastqc_path)
+            fastp_path = setup_fastp(app_dir)
+            set_paths("FASTP_PATH", fastp_path)
+            print("Setup completed successfully.")
     except:
         print("An error occurred while setting up system.")
-    print("Setup completed successfully.")
-    set_paths("SRA_PATH", sra_path)
-    set_paths("FASTQC_PATH", fastqc_path)
 
 if __name__ == "__main__":
     system_os = sys.platform

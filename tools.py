@@ -2,10 +2,45 @@ import os
 import subprocess
 import requests
 from tqdm import tqdm
+import sys
 
-def run_command_out(command, dir=None):
-    print("Running command:", command)
-    cmd = command.split()
+def update_path(path_var, path):
+    with open(".env", "r") as f:
+        lines = f.readlines()
+    for line in lines:
+        if path is not None:
+            if path_var in line:
+                lines[lines.index(line)] = f"{path_var}='{path}'\n"
+    with open(".env", "w") as f:
+        f.writelines(lines)
+
+def add_path(path_var, path):
+    with open(".env", "a") as f:
+        if path is not None:
+            f.write(f"{path_var}='{path}'\n")
+
+def set_paths(path_var, temppath):
+    if not os.path.isfile('.env'):
+        try:
+            with open('.env', "w") as f:
+                f.write("")  # Create an empty .env file
+        except Exception as e:
+            print(f"An error occurred while creating the .env file: {e}")
+            sys.exit(1)
+    try:
+        with open(".env", "r") as f:
+            lines = f.read()
+        if path_var in lines:
+            update_path(path_var, temppath)
+        else:
+            add_path(path_var, temppath)
+    except:
+        print("An error occurred while updating the path.")
+        sys.exit(1)
+
+def run_command_out(cmd, dir=None):
+    cmd = cmd.split()
+    print("Running command:", cmd)
     if dir:
         cmd[0] = dir+"/"+cmd[0]
     try:
@@ -15,11 +50,11 @@ def run_command_out(command, dir=None):
         print("An error occurred while running the command:", e.output.decode())
         return cmd
 
-def run_command(command, dir=None):
-    print("Running command:", command)
-    cmd = command.split()
+def run_command(cmd, dir=None):
+    cmd = cmd.split()
+    print("Running command:", cmd)
     if dir:
-        cmd[0] = dir + cmd[0]
+        cmd[0] = dir+"/"+cmd[0]
     try:
         subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return True

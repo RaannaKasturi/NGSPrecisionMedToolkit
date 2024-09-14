@@ -1,9 +1,15 @@
 import os
-from install_sra import install_sra
-from tools import run_command_out
-        
+import sys
+from dotenv import load_dotenv
+from tools import run_command_out, set_paths
+
+load_dotenv()
+app_dir = os.getenv("APP_DIR")
+data_dir = os.getenv("DATA_DIR")
+sratoolkit_path = os.getenv("SRATOOLKIT_PATH")
+
 def cmd_for_info(accession: str):
-    command = ['vdb-dump', accession, '--info']
+    command = (f'vdb-dump {accession} --info')
     return command
 
 def cmd_to_download(accession: str,
@@ -19,22 +25,27 @@ def cmd_to_download(accession: str,
                  ar_start: int = None,
                  ar_end: int = None,
                  member: str = None):
-    command = ['fastq-dump', accession, '--outdir', f'data/{accession}']
+    command = ['fastq-dump', accession, '--split-3', '--outdir', f'data/{accession}']
     if compressed:
         command.append('--gzip')
     else:
         command = command
     if alignment_filter:
         if alignment_filter_type == "split-spot":
+            command.remove('--split-3')
             command.append('--split-spot')
         elif alignment_filter_type == "aligned":
+            command.remove('--split-3')
             command.append('--aligned')
         elif alignment_filter_type == "unaligned":
+            command.remove('--split-3')
             command.append('--unaligned')
         elif alignment_filter_type == "aligned-region":
+            command.remove('--split-3')
             command.append('--aligned-region')
             command.append(f'{ar_specific}:{ar_start}-{ar_end}')
         elif alignment_filter_type == "matepair-distance":
+            command.remove('--split-3')
             command.append('--matepair-distance')
             command.append(f'{ar_start}-{ar_end}')
         else:
@@ -64,7 +75,8 @@ def cmd_to_download(accession: str,
         command.append(member)
     else:
         command = command
-    return command
+    cmd = ' '.join(command)
+    return cmd
 
 def list_files_in_directory(directory):
     try:
@@ -81,29 +93,24 @@ def list_files_in_directory(directory):
 def main(accession: str, alignment_filter_type: str,
          alignment_filter: bool, compressed: bool, skip_technical: bool, remove_adapter: bool, spot_group: bool,
          min_reads: int = None, max_reads: int = None, ar_specific: str = None, ar_start: int = None, ar_end: int = None, member: str = None):
-    dir =  "applications/sratoolkit/bin/"
     try:
-        try:
-            run_command_out(['vdb-dump', '--help'])
-            dir = None
-        except:
-            run_command_out(['vdb-dump', '--help'], dir=dir)
+        run_command_out("vdb-dump --help", dir=sratoolkit_path)
     except Exception as e:
-        try:
-            install_sra()
-        except Exception as e:
-            print(f"An error occurred: {e}")
-    path = f'data/{accession}'
-    os.makedirs(name=path, mode=0o777, exist_ok=True)
+        print(f"An error occurred: {e}")
+        print("Setup Incomplete. Please run the setup script again.")
+        sys.exit(1)
+    working_dir = os.path.join(data_dir, accession)
+    set_paths("WORKING_DIR", working_dir)
+    os.makedirs(name=working_dir, mode=0o777, exist_ok=True)
     get_data = cmd_for_info(accession=accession)
     download = cmd_to_download(accession, alignment_filter, compressed, skip_technical, remove_adapter, spot_group, alignment_filter_type, min_reads, max_reads, ar_specific, ar_start, ar_end, member)
     print("Fetching data")
-    data = run_command_out(get_data, dir=dir)
+    data = run_command_out(get_data, dir=sratoolkit_path)
     print("Downloading Fastq files")
-    download_status = run_command_out(download, dir=dir)
+    download_status = run_command_out(download, dir=sratoolkit_path)
     files = []
-    for file in list_files_in_directory(path):
-        file = os.path.join(path, file)
+    for file in list_files_in_directory(working_dir):
+        file = os.path.join(working_dir, file)
         files.append(file)
     return data, download_status, files
 
@@ -116,7 +123,7 @@ if __name__ == "__main__":
     remove_adapter = False
     spot_group = False
     min_reads = None
-    max_reads = 1000
+    max_reads = 10000
     ar_specific = None
     ar_start = None
     ar_end = None
@@ -127,4 +134,4 @@ if __name__ == "__main__":
     print(f"{accession} DATA:\n"+data)
     print("DOWNLOAD STATUS:\n"+download_status)
     for file in files:
-        print("SRA FILES:"+file)
+        print("SRA FILES: "+file)
