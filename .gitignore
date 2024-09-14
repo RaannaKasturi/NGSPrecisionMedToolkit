@@ -1,4 +1,4 @@
-bwa*
 applications*
 data*
 __pycache__*
+.env

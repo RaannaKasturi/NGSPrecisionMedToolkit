@@ -1,5 +1,6 @@
 import os, sys
-from tools import run_command
+import tarfile
+from tools import run_command, download
 
 def install_java():
     try:
@@ -12,12 +13,29 @@ def install_java():
                 run_command(['sudo', 'apt', 'update'])
                 run_command(['sudo', 'apt', 'install', 'default-jdk'])
                 run_command(['sudo', 'apt', 'install', 'default-jre'])
-                print("Java installed successfully.")
+                file = download(url="https://github.com/s-andrews/FastQC/archive/refs/tags/v0.12.1.zip", fname="applications/fastqc.zip")
+                with tarfile.open(file, "r:gz") as f:
+                    f.extractall()
+                print("Java & FastQC installed successfully.")
             except:
                 run_command(['apt', 'update'])
                 run_command(['apt', 'install', 'default-jdk'])
                 run_command(['apt', 'install', 'default-jre'])
-                print("Java installed successfully.")
+                print("Java & FastQC installed successfully.")
+            return True
+        except:
+            return False
+        
+def install_fastqc():
+    try:
+        data = run_command(['applications/fastqc/fastqc', '--version'])
+        print("FastQC already installed.")
+        return True
+    except:
+        try:
+
+            run_command(['sudo', 'apt', 'install', 'fastqc'])
+            print("FastQC installed successfully.")
             return True
         except:
             return False
