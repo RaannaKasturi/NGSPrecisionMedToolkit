@@ -1,2 +1,4 @@
-Backend/Downloads/*
-Backend/bwa/*
+applications*
+data*
+__pycache__*
+.env
