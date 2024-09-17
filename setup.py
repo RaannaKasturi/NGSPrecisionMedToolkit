@@ -68,8 +68,9 @@ def setup_fastqc(app_dir):
     except:
         run_command_out(f"wget -O {app_dir}/fastqc.zip https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.12.1.zip")
         run_command_out(f"unzip {app_dir}/fastqc.zip -d {app_dir}")
-        run_command_out(f"mv {app_dir}/FastQC {app_dir}/fastqc")
         run_command_out(f"rm {app_dir}/fastqc.zip")
+        run_command_out(f"mv {app_dir}/FastQC {app_dir}/fastqc-temp")
+        run_command_out(f"mv {app_dir}/fastqc-temp {app_dir}/fastqc")
     return fastqc_path
 
 def setup_fastp(app_dir):

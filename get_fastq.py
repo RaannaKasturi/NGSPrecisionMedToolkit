@@ -123,7 +123,7 @@ if __name__ == "__main__":
     remove_adapter = False
     spot_group = False
     min_reads = None
-    max_reads = 10000
+    max_reads = 100
     ar_specific = None
     ar_start = None
     ar_end = None
